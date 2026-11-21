@@ -1,232 +1,191 @@
-## Qubix — Quiz Platform
+# Qubix — Quiz Platform
 
-## Описание проекта
-## Qubix — backend-приложение для создания и прохождения тестов.
-## Пользователи могут регистрироваться, авторизоваться, просматривать тесты и проходить их. Авторы могут создавать и редактировать тесты, вопросы и варианты ответов.
-## После завершения попытки пользователь получает результат прохождения теста.
+Qubix — REST API-платформа для создания и прохождения тестов. Система позволяет пользователям проходить тесты, а авторам — создавать и управлять категориями, тестами, вопросами и вариантами ответов.
 
-## Используемые технологии
-## Go — язык программирования.
-## net/http — обработка HTTP-запросов.
-## PostgreSQL — реляционная база данных.
-## database/sql — работа с базой данных.
-## lib/pq — драйвер PostgreSQL.
-## bcrypt — хеширование паролей.
-## JWT — аутентификация пользователей.
+## Технологии
 
-## Архитектура проекта:
-Проект использует трёхслойную архитектуру:
-## Handler — принимает HTTP-запросы и возвращает HTTP-ответы.
-## Service — содержит бизнес-логику и проверяет данные.
-## Repository — взаимодействует с базой данных PostgreSQL.
+- **Go** — язык программирования.
+- **net/http** — HTTP-сервер и маршрутизация.
+- **PostgreSQL** — реляционная база данных.
+- **database/sql + lib/pq** — работа с базой данных.
+- **JWT** — аутентификация и авторизация.
+- **bcrypt** — безопасное хеширование паролей.
+- **OpenAPI / Swagger Editor** — документация и тестирование API.
 
-## Структура проекта:
+## Архитектура проекта
 
+Проект построен на трёхслойной архитектуре:
+
+- **Handler** — принимает HTTP-запросы и возвращает ответы.
+- **Service** — содержит бизнес-логику и проверки.
+- **Repository** — отвечает за взаимодействие с PostgreSQL.
+
+Дополнительно используется Middleware для проверки JWT-токенов и доступа пользователей.
+
+## Структура проекта
+
+```text
 qubix/
 ├── cmd/
 │   └── api/
-│       └── main.go
 ├── config/
-│   └── config.go
 ├── internal/
 │   ├── database/
-│   ├── handler/
 │   ├── model/
 │   ├── repository/
-│   └── service/
+│   ├── service/
+│   └── handler/
 ├── middleware/
 ├── migrations/
 ├── seeds/
+├── docs/
+│   ├── database_schema.png
+│   └── database_schema.pdf
+├── .env
+├── .env.example
+├── .gitignore
 ├── go.mod
 ├── go.sum
+├── openapi.yaml
+├── commands.txt
 └── README.md
+```
 
+## Основные возможности
 
-## Основные возможности:
-## 1. Аутентификация и авторизация:
+### Аутентификация и авторизация
 - Регистрация пользователей.
 - Вход в систему.
 - Хеширование паролей с помощью bcrypt.
-- Авторизация через JWT.
-- Защита приватных маршрутов.
-- Разделение ролей user и author.
+- Генерация и проверка JWT-токенов.
+- Разграничение прав доступа по ролям `user` и `author`.
 
-## 2. Управление тестами:
-- Создание тестов.
-- Получение списка тестов.
-- Получение теста по ID.
-- Редактирование и удаление тестов.
-- Проверка прав автора на управление собственными тестами.
+### Управление тестами
+- Создание и управление категориями.
+- Создание и управление тестами.
+- Добавление и редактирование вопросов.
+- Добавление вариантов ответов.
+- Управление собственными материалами автора.
 
-## 3. Управление вопросами и вариантами ответов:
-- Создание вопросов.
-- Получение вопросов.
-- Редактирование и удаление вопросов.
-- Создание вариантов ответов.
-- Указание правильных вариантов.
-- Защита правильных ответов от выдачи через публичный API.
-
-## 4. Прохождение тестов:
+### Прохождение тестов
 - Создание попытки прохождения теста.
 - Отправка ответов.
 - Завершение попытки.
-- Автоматическая проверка ответов.
-- Подсчёт баллов.
-- Получение результата.
+- Подсчёт результата.
+- Получение итогового результата.
 
-##  5. Категории:
-- Создание категорий.
-- Получение списка категорий.
-- Получение категории по ID.
-- Редактирование и удаление категорий.
+Правильные ответы не раскрываются в публичных ответах API.
 
-## 6. База данных:
-- Проект использует PostgreSQL.
-Основные таблицы:
-- users
-- categories
-- quizzes
-- questions
-- options
-- attempts
-- answers
-- answer_options
-- results
+## База данных
 
-##  7. Структура базы данных создаётся с помощью SQL-миграций, расположенных в папке migrations.
+Проект использует PostgreSQL.
 
+База данных состоит из 9 основных таблиц:
 
-##  Настройка и запуск
+1. `users`
+2. `categories`
+3. `quizzes`
+4. `questions`
+5. `options`
+6. `attempts`
+7. `answers`
+8. `answer_options`
+9. `results`
 
-##  1. Клонирование проекта:
+Между таблицами настроены внешние ключи для обеспечения целостности данных.
 
+ER-диаграмма базы данных находится в папке `docs`.
+
+## Установка и запуск
+
+### 1. Клонирование проекта
+
+```bash
 git clone <repository-url>
 cd qubix
+```
 
-##  2. Настройка переменных окружения
-Перед запуском необходимо настроить:
+### 2. Настройка переменных окружения
+
+Создайте файл `.env` на основе `.env.example`.
+
+Пример:
+
+```env
 PORT=8080
-DATABASE_URL=postgres://postgres:password7070@localhost:5432/qubix?sslmode=disable
-JWT_SECRET=your-secret-key
+DATABASE_URL=postgres://username:password@localhost:5432/qubix?sslmode=disable
+JWT_SECRET=your_secret_key
+```
 
-## Для получения secret key JWT: 
-$env:JWT_SECRET
+Укажите свои данные PostgreSQL и секретный ключ JWT.
 
-Укажи собственные данные PostgreSQL и секретный ключ JWT. Не публикуй реальные секреты.
+### 3. Установка зависимостей
 
-## 3. Установка зависимостей:
+```bash
 go mod tidy
+```
 
-## 4. Запуск сервера:
+### 4. Подготовка базы данных
+
+Создайте базу данных PostgreSQL с именем `qubix` и выполните SQL-миграции из папки `migrations`.
+
+### 5. Запуск сервера
+
+```bash
 go run ./cmd/api
+```
 
-По умолчанию сервер запускается на: http://localhost:8080
+Сервер будет доступен по адресу:
 
+`http://localhost:8080`
 
-## Проверка проекта:
+## Проверка проекта
+
+Для проверки компиляции всех пакетов:
+
+```bash
 go test ./...
+```
 
+## API и Swagger
 
+В проекте подготовлена спецификация OpenAPI в файле `openapi.yaml`.
 
+Для просмотра документации и отправки запросов через браузер используется Swagger Editor.
 
-## Основные API-маршруты
+### Подключение Swagger Editor
 
-| Метод | Маршрут                         | Назначение |
+1. Запустите Qubix:
 
-| POST | /sign-up                         | Регистрация |
-| POST | /login                           | Авторизация |
-| GET  | /private                         | Приватный маршрут |
-| GET  | /categories                      | Список категорий |
-| POST | /categories                      | Создание категории |
-| GET  | /quizzes                         | Список тестов |
-| POST | /quizzes                         | Создание теста |
-| GET  | /quizzes/{id}                    | Получение теста |
-| POST | /quizzes/{quiz_id}/questions     | Создание вопроса |
-| GET  | /quizzes/{quiz_id}/questions     | Вопросы теста |
-| POST | /questions/{question_id}/options | Создание варианта ответа |
-| POST | /quizzes/{quiz_id}/attempts      | Начало попытки |
-| POST | /attempts/{id}/answers           | Отправка ответа |
-| POST | /attempts/{id}/finish            | Завершение попытки |
-| GET  | /attempts/{id}/result            | Получение результата |
+   ```bash
+   go run ./cmd/api
+   ```
 
+2. Откройте сайт:
 
-Основной функционал backend-приложения реализован.
-Проверены основные сценарии регистрации, авторизации, управления тестами, прохождения тестов и получения результатов.
+   https://editor.swagger.io/
 
+3. Импортируйте файл `openapi.yaml`.
 
+4. Для защищённых запросов получите JWT-токен через `POST /login`.
 
+5. Нажмите **Authorize** в Swagger Editor.
 
-Swagger Editor
+6. В поле `BearerAuth` вставьте полученный токен.
 
-Qubix API can be tested and documented using Swagger Editor.
-1. Start the Qubix server
---> Open PowerShell in the project directory and run:
+7. Для проверки доступа выполните запрос `GET /private` через **Try it out → Execute**.
 
-go run ./cmd/api
+При корректном токене сервер должен вернуть успешный ответ:
 
-
---> The server starts at:
-http://localhost:8080
-
-
---> Keep this terminal window open while testing the API.
-
-2. Open Swagger Editor
---> Open the following website:
-
-https://editor.swagger.io/
-
-Import the project's `openapi.yaml` file into Swagger Editor.
-You can also paste the contents of `openapi.yaml` into the editor.
-
-3. Authorize using JWT
-Some API endpoints require Bearer Token authentication.
-
-First, log in through the `POST /login` endpoint or use PowerShell:
-
-$body = @{
-    login = "YOUR_LOGIN"
-    password = "YOUR_PASSWORD"
-} | ConvertTo-Json
-
-$response = Invoke-RestMethod -Uri "http://localhost:8080/login" -Method Post -ContentType "application/json" -Body $body
-
-
---> Copy the JWT token to the clipboard:
-
-Set-Clipboard -Value $response.token
-
-
-In Swagger Editor:
-
-1. Click `Authorize`.
-2. Paste the JWT token into the `BearerAuth` field.
-3. Do not add the word `Bearer` manually.
-4. Click `Authorize`, then `Close`.
-
-4. Test API endpoints
-
-1. Select an endpoint, for example `GET /private`.
-2. Click `Try it out`.
-3. Click `Execute`.
-4. Check the server response.
-
-Expected successful response:
-
-
-Code: 200
+```text
 Access granted!
+```
 
+### CORS
 
-### 5. CORS configuration
+Для взаимодействия с Swagger Editor настроен CORS.
 
-Qubix includes CORS middleware that allows requests from:
-
-
-https://editor.swagger.io
-
-
-It allows the following HTTP methods:
+Разрешены необходимые HTTP-методы:
 
 - GET
 - POST
@@ -234,11 +193,18 @@ It allows the following HTTP methods:
 - DELETE
 - OPTIONS
 
-It also allows the `Authorization` and `Content-Type` headers required for API requests.
+Также разрешены заголовки `Authorization` и `Content-Type`.
 
-`Important notes`
+Swagger Editor и OpenAPI были добавлены как дополнительная инициатива автора проекта, сверх основных требований.
 
-- The Qubix server must be running before testing API endpoints.
-- The API address is `http://localhost:8080`.
-- Protected endpoints require a valid JWT token.
-- Never share your JWT token, database password, or `JWT_SECRET`.
+## Безопасность
+
+- Пароли хранятся в виде bcrypt-хешей.
+- Защищённые маршруты требуют JWT-токен.
+- Проверяются роли и права доступа.
+- Автор может управлять только собственными материалами.
+- Правильные ответы скрыты от пользователей до проверки результата.
+
+## Автор
+
+Проект Qubix разработан в рамках курсового проекта по изучению языка программирования Go.
