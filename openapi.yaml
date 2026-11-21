@@ -1,0 +1,759 @@
+openapi: 3.0.3
+
+info:
+  title: Qubix API
+  description: REST API for the Qubix Quiz Platform
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Authentication
+  - name: Users
+  - name: Categories
+  - name: Quizzes
+  - name: Questions
+  - name: Options
+  - name: Attempts
+  - name: Results
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserRegistration:
+      type: object
+      required: [login, email, password]
+      properties:
+        login:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        login:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [user, author]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LoginRequest:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+          description: User login or email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        token:
+          type: string
+
+    CategoryRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    CategoryResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    QuizRequest:
+      type: object
+      required: [category_id, title, difficulty]
+      properties:
+        category_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+        time_limit:
+          type: integer
+
+    QuizResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        creator_id:
+          type: integer
+        category_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        difficulty:
+          type: string
+        time_limit:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    QuestionRequest:
+      type: object
+      required: [text, question_type, points]
+      properties:
+        text:
+          type: string
+        question_type:
+          type: string
+          enum: [single, multiple, text]
+        points:
+          type: integer
+
+    QuestionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        quiz_id:
+          type: integer
+        text:
+          type: string
+        question_type:
+          type: string
+        points:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    OptionRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+        is_correct:
+          type: boolean
+
+    AnswerRequest:
+      type: object
+      required: [question_id]
+      properties:
+        question_id:
+          type: integer
+        text_answer:
+          type: string
+        option_ids:
+          type: array
+          items:
+            type: integer
+
+paths:
+  /sign-up:
+    post:
+      tags: [Authentication]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid registration data
+
+  /login:
+    post:
+      tags: [Authentication]
+      summary: Log in and receive a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+        '500':
+          description: Could not generate token
+
+  /private:
+    get:
+      tags: [Users]
+      summary: Access a protected endpoint
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Access granted
+        '401':
+          description: Unauthorized
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: Get all categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryResponse'
+        '500':
+          description: Failed to get categories
+
+    post:
+      tags: [Categories]
+      summary: Create a category
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: Invalid category data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Author role required
+
+  /categories/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Categories]
+      summary: Get category by ID
+      responses:
+        '200':
+          description: Category found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: Invalid category ID
+        '404':
+          description: Category not found
+
+    put:
+      tags: [Categories]
+      summary: Update a category
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '204':
+          description: Category updated
+        '400':
+          description: Invalid category ID or category data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Author role required
+
+    delete:
+      tags: [Categories]
+      summary: Delete a category
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Category deleted
+        '400':
+          description: Invalid category ID
+        '401':
+          description: Unauthorized
+        '403':
+          description: Author role required
+        '404':
+          description: Category not found
+
+  /quizzes:
+    get:
+      tags: [Quizzes]
+      summary: Get all quizzes
+      responses:
+        '200':
+          description: List of quizzes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuizResponse'
+        '500':
+          description: Failed to get quizzes
+
+    post:
+      tags: [Quizzes]
+      summary: Create a quiz
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuizRequest'
+      responses:
+        '201':
+          description: Quiz created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizResponse'
+        '400':
+          description: Invalid quiz data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Author role required
+
+  /quizzes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Quizzes]
+      summary: Get quiz by ID
+      responses:
+        '200':
+          description: Quiz found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizResponse'
+        '400':
+          description: Invalid quiz ID
+        '404':
+          description: Quiz not found
+
+    put:
+      tags: [Quizzes]
+      summary: Update a quiz
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuizRequest'
+      responses:
+        '204':
+          description: Quiz updated
+        '400':
+          description: Invalid quiz ID or quiz data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Quiz not found
+
+    delete:
+      tags: [Quizzes]
+      summary: Delete a quiz
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Quiz deleted
+        '400':
+          description: Invalid quiz ID
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Quiz not found
+        '500':
+          description: Failed to delete quiz
+
+  /quizzes/{quiz_id}/questions:
+    parameters:
+      - name: quiz_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Questions]
+      summary: Get questions for a quiz
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuestionResponse'
+        '400':
+          description: Invalid quiz ID
+        '500':
+          description: Failed to get questions
+
+    post:
+      tags: [Questions]
+      summary: Add a question to a quiz
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+      responses:
+        '201':
+          description: Question created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionResponse'
+        '400':
+          description: Invalid quiz ID or question data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Quiz not found
+
+  /questions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Questions]
+      summary: Get question by ID
+      responses:
+        '200':
+          description: Question found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionResponse'
+        '400':
+          description: Invalid question ID
+        '404':
+          description: Question not found
+
+    put:
+      tags: [Questions]
+      summary: Update a question
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+      responses:
+        '204':
+          description: Question updated
+        '400':
+          description: Invalid question ID or question data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Question not found
+
+    delete:
+      tags: [Questions]
+      summary: Delete a question
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Question deleted
+        '400':
+          description: Invalid question ID
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Question not found
+        '500':
+          description: Failed to delete question
+
+  /questions/{question_id}/options:
+    parameters:
+      - name: question_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Options]
+      summary: Get options for a question
+      responses:
+        '200':
+          description: List of options
+
+    post:
+      tags: [Options]
+      summary: Add an option to a question
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OptionRequest'
+      responses:
+        '201':
+          description: Option created
+        '400':
+          description: Invalid option data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Question not found
+
+  /options/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Options]
+      summary: Get option by ID
+      responses:
+        '200':
+          description: Option found
+        '404':
+          description: Option not found
+
+    put:
+      tags: [Options]
+      summary: Update an option
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OptionRequest'
+      responses:
+        '200':
+          description: Option updated
+        '400':
+          description: Invalid option data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Option not found
+
+    delete:
+      tags: [Options]
+      summary: Delete an option
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Option deleted
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied
+        '404':
+          description: Option not found
+
+  /quizzes/{quiz_id}/attempts:
+    post:
+      tags: [Attempts]
+      summary: Start a quiz attempt
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Attempt started
+        '401':
+          description: Unauthorized
+        '404':
+          description: Quiz not found
+
+  /attempts/{id}/answers:
+    post:
+      tags: [Attempts]
+      summary: Submit an answer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnswerRequest'
+      responses:
+        '201':
+          description: Answer submitted
+        '400':
+          description: Invalid answer
+        '401':
+          description: Unauthorized
+        '404':
+          description: Attempt or question not found
+
+  /attempts/{id}/finish:
+    post:
+      tags: [Attempts]
+      summary: Finish a quiz attempt
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Attempt completed and result calculated
+        '400':
+          description: Attempt cannot be completed
+        '401':
+          description: Unauthorized
+        '404':
+          description: Attempt not found
+
+  /attempts/{id}/result:
+    get:
+      tags: [Results]
+      summary: Get result of a completed attempt
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Attempt result
+        '401':
+          description: Unauthorized
+        '404':
+          description: Result not found

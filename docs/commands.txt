@@ -1,0 +1,49 @@
+QUBIX — COMMANDS CHEAT SHEET:
+
+1. Перейти в папку проекта
+cd C:\Users\MK\Desktop\qubix
+
+2. Проверить версию Go
+go version
+
+3. Установить зависимости
+go mod tidy
+
+4. Проверить и собрать все пакеты проекта
+go test ./...
+
+5. Запустить сервер
+go run ./cmd/api
+
+6. Остановить сервер
+Нажать:
+Ctrl + C
+
+7. Проверить доступность API
+Во втором окне PowerShell:
+Invoke-RestMethod http://localhost:8080/categories
+
+8. Посмотреть список категорий
+Invoke-RestMethod http://localhost:8080/categories
+
+9. Посмотреть список квизов
+Invoke-RestMethod http://localhost:8080/quizzes
+
+10. Проверить структуру проекта
+Get-ChildItem -Recurse -File
+
+11. Проверить переменные окружения
+$env:PORT
+$env:DATABASE_URL
+if ($env:JWT_SECRET) { "JWT_SECRET is configured" }
+
+12. Отформатировать Go-код
+gofmt -w ./cmd ./config ./internal ./middleware
+
+ВАЖНО
+Сервер запускается в первом окне PowerShell.
+API-запросы выполняются во втором окне PowerShell.
+Не закрывать первое окно во время демонстрации.
+Не показывать пароль PostgreSQL и JWT_SECRET.
+
+Команда go test ./... проверяет сборку пакетов; если написаны тесты, также запускает их.
