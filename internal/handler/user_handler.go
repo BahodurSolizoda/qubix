@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"qubix/internal/dto"
 	"qubix/internal/model"
 	"qubix/internal/service"
 )
@@ -22,11 +23,7 @@ func NewUserHandler(userService *service.UserService, jwtService *service.JWTSer
 }
 
 func (h *UserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		Login    string `json:"login"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var request dto.SignUpRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -48,16 +45,22 @@ func (h *UserHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := dto.UserResponse{
+		ID:        user.ID,
+		Login:     user.Login,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		LoginOrEmail string `json:"login"`
-		Password     string `json:"password"`
-	}
+	var request dto.LoginRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -77,7 +80,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]interface{}{
-		"user":  user,
+		"user": dto.UserResponse{
+			ID:        user.ID,
+			Login:     user.Login,
+			Email:     user.Email,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+		},
 		"token": token,
 	}
 

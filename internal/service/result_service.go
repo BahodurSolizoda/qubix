@@ -15,13 +15,7 @@ type ResultService struct {
 	resultRepo   ResultRepository
 }
 
-func NewResultService(
-	attemptRepo AttemptRepository,
-	answerRepo AnswerRepository,
-	questionRepo QuestionRepository,
-	optionRepo OptionRepository,
-	resultRepo ResultRepository,
-) *ResultService {
+func NewResultService(attemptRepo AttemptRepository, answerRepo AnswerRepository, questionRepo QuestionRepository, optionRepo OptionRepository, resultRepo ResultRepository) *ResultService {
 	return &ResultService{
 		attemptRepo:  attemptRepo,
 		answerRepo:   answerRepo,

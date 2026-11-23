@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"qubix/internal/dto"
+	appmiddleware "qubix/internal/middleware"
 	"qubix/internal/model"
 	"qubix/internal/service"
-	appmiddleware "qubix/middleware"
 )
 
 type CategoryHandler struct {
@@ -21,10 +22,7 @@ func NewCategoryHandler(categoryService *service.CategoryService) *CategoryHandl
 	}
 }
 
-func (h *CategoryHandler) requireAuthor(
-	w http.ResponseWriter,
-	r *http.Request,
-) bool {
+func (h *CategoryHandler) requireAuthor(w http.ResponseWriter, r *http.Request) bool {
 	role, ok := r.Context().Value(appmiddleware.UserRoleKey).(string)
 	if !ok || role != "author" {
 		http.Error(w, "only authors can manage categories", http.StatusForbidden)
@@ -39,21 +37,34 @@ func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var category model.Category
+	var request dto.CategoryRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.categoryService.Create(r.Context(), &category); err != nil {
+	category := &model.Category{
+		Name:        request.Name,
+		Description: request.Description,
+	}
+
+	if err := h.categoryService.Create(r.Context(), category); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	response := dto.CategoryResponse{
+		ID:          category.ID,
+		Name:        category.Name,
+		Description: category.Description,
+		CreatedAt:   category.CreatedAt,
+		UpdatedAt:   category.UpdatedAt,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(category)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -73,8 +84,16 @@ func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := dto.CategoryResponse{
+		ID:          category.ID,
+		Name:        category.Name,
+		Description: category.Description,
+		CreatedAt:   category.CreatedAt,
+		UpdatedAt:   category.UpdatedAt,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(category)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -84,8 +103,20 @@ func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := make([]dto.CategoryResponse, 0, len(categories))
+
+	for _, category := range categories {
+		response = append(response, dto.CategoryResponse{
+			ID:          category.ID,
+			Name:        category.Name,
+			Description: category.Description,
+			CreatedAt:   category.CreatedAt,
+			UpdatedAt:   category.UpdatedAt,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(categories)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -99,16 +130,20 @@ func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var category model.Category
+	var request dto.CategoryRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	category.ID = id
+	category := &model.Category{
+		ID:          id,
+		Name:        request.Name,
+		Description: request.Description,
+	}
 
-	if err := h.categoryService.Update(r.Context(), &category); errors.Is(err, model.ErrNotFound) {
+	if err := h.categoryService.Update(r.Context(), category); errors.Is(err, model.ErrNotFound) {
 		http.Error(w, "category not found", http.StatusNotFound)
 		return
 	} else if err != nil {

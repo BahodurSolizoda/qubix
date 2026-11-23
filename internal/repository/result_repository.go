@@ -43,10 +43,7 @@ func (r *ResultRepository) Create(ctx context.Context, result *model.Result) err
 	).Scan(&result.ID, &result.CreatedAt)
 }
 
-func (r *ResultRepository) CreateAndCompleteAttempt(
-	ctx context.Context,
-	result *model.Result,
-) error {
+func (r *ResultRepository) CreateAndCompleteAttempt(ctx context.Context, result *model.Result) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -106,10 +103,7 @@ func (r *ResultRepository) CreateAndCompleteAttempt(
 	return tx.Commit()
 }
 
-func (r *ResultRepository) GetByAttemptID(
-	ctx context.Context,
-	attemptID int,
-) (*model.Result, error) {
+func (r *ResultRepository) GetByAttemptID(ctx context.Context, attemptID int) (*model.Result, error) {
 	result := &model.Result{}
 
 	query := `

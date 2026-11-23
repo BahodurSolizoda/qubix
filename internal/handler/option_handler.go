@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"qubix/internal/dto"
+	appmiddleware "qubix/internal/middleware"
 	"qubix/internal/model"
 	"qubix/internal/service"
-	appmiddleware "qubix/middleware"
 )
 
 type OptionHandler struct {
@@ -17,17 +18,7 @@ type OptionHandler struct {
 	quizService     *service.QuizService
 }
 
-type optionRequest struct {
-	QuestionID int    `json:"question_id"`
-	Text       string `json:"text"`
-	IsCorrect  bool   `json:"is_correct"`
-}
-
-func NewOptionHandler(
-	optionService *service.OptionService,
-	questionService *service.QuestionService,
-	quizService *service.QuizService,
-) *OptionHandler {
+func NewOptionHandler(optionService *service.OptionService, questionService *service.QuestionService, quizService *service.QuizService) *OptionHandler {
 	return &OptionHandler{
 		optionService:   optionService,
 		questionService: questionService,
@@ -58,26 +49,26 @@ func (h *OptionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request optionRequest
+	var request dto.OptionRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	option := model.Option{
+	option := &model.Option{
 		QuestionID: questionID,
 		Text:       request.Text,
 		IsCorrect:  request.IsCorrect,
 	}
 
-	if err := h.optionService.Create(r.Context(), &option); err != nil {
+	if err := h.optionService.Create(r.Context(), option); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(option)
+	json.NewEncoder(w).Encode(toOptionResponse(option))
 }
 
 func (h *OptionHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +89,7 @@ func (h *OptionHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(option)
+	json.NewEncoder(w).Encode(toOptionResponse(option))
 }
 
 func (h *OptionHandler) GetByQuestionID(w http.ResponseWriter, r *http.Request) {
@@ -114,8 +105,14 @@ func (h *OptionHandler) GetByQuestionID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	response := make([]dto.OptionResponse, 0, len(options))
+
+	for _, option := range options {
+		response = append(response, toOptionResponse(&option))
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(options)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *OptionHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -151,20 +148,20 @@ func (h *OptionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request optionRequest
+	var request dto.OptionRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	option := model.Option{
+	option := &model.Option{
 		ID:         id,
 		QuestionID: existingOption.QuestionID,
 		Text:       request.Text,
 		IsCorrect:  request.IsCorrect,
 	}
 
-	if err := h.optionService.Update(r.Context(), &option); errors.Is(err, model.ErrNotFound) {
+	if err := h.optionService.Update(r.Context(), option); errors.Is(err, model.ErrNotFound) {
 		http.Error(w, "option not found", http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -219,12 +216,7 @@ func (h *OptionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *OptionHandler) checkQuizOwnership(
-	w http.ResponseWriter,
-	r *http.Request,
-	questionID int,
-	userID int,
-) bool {
+func (h *OptionHandler) checkQuizOwnership(w http.ResponseWriter, r *http.Request, questionID int, userID int) bool {
 	question, err := h.questionService.GetByID(r.Context(), questionID)
 	if errors.Is(err, model.ErrNotFound) {
 		http.Error(w, "question not found", http.StatusNotFound)
@@ -251,4 +243,12 @@ func (h *OptionHandler) checkQuizOwnership(
 	}
 
 	return true
+}
+
+func toOptionResponse(option *model.Option) dto.OptionResponse {
+	return dto.OptionResponse{
+		ID:         option.ID,
+		QuestionID: option.QuestionID,
+		Text:       option.Text,
+	}
 }

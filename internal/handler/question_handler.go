@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"qubix/internal/dto"
+	appmiddleware "qubix/internal/middleware"
 	"qubix/internal/model"
 	"qubix/internal/service"
-	appmiddleware "qubix/middleware"
 )
 
 type QuestionHandler struct {
@@ -16,10 +17,7 @@ type QuestionHandler struct {
 	quizService     *service.QuizService
 }
 
-func NewQuestionHandler(
-	questionService *service.QuestionService,
-	quizService *service.QuizService,
-) *QuestionHandler {
+func NewQuestionHandler(questionService *service.QuestionService, quizService *service.QuizService) *QuestionHandler {
 	return &QuestionHandler{
 		questionService: questionService,
 		quizService:     quizService,
@@ -60,23 +58,28 @@ func (h *QuestionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var question model.Question
+	var request dto.QuestionRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&question); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	question.QuizID = quizID
+	question := &model.Question{
+		QuizID:       quizID,
+		Text:         request.Text,
+		QuestionType: request.QuestionType,
+		Points:       request.Points,
+	}
 
-	if err := h.questionService.Create(r.Context(), &question); err != nil {
+	if err := h.questionService.Create(r.Context(), question); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(question)
+	json.NewEncoder(w).Encode(toQuestionResponse(question))
 }
 
 func (h *QuestionHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +100,7 @@ func (h *QuestionHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(question)
+	json.NewEncoder(w).Encode(toQuestionResponse(question))
 }
 
 func (h *QuestionHandler) GetByQuizID(w http.ResponseWriter, r *http.Request) {
@@ -113,8 +116,14 @@ func (h *QuestionHandler) GetByQuizID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := make([]dto.QuestionResponse, 0, len(questions))
+
+	for _, question := range questions {
+		response = append(response, toQuestionResponse(&question))
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(questions)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *QuestionHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -161,17 +170,22 @@ func (h *QuestionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var question model.Question
+	var request dto.QuestionRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&question); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	question.ID = id
-	question.QuizID = existingQuestion.QuizID
+	question := &model.Question{
+		ID:           id,
+		QuizID:       existingQuestion.QuizID,
+		Text:         request.Text,
+		QuestionType: request.QuestionType,
+		Points:       request.Points,
+	}
 
-	if err := h.questionService.Update(r.Context(), &question); errors.Is(err, model.ErrNotFound) {
+	if err := h.questionService.Update(r.Context(), question); errors.Is(err, model.ErrNotFound) {
 		http.Error(w, "question not found", http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -235,4 +249,15 @@ func (h *QuestionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func toQuestionResponse(question *model.Question) dto.QuestionResponse {
+	return dto.QuestionResponse{
+		ID:           question.ID,
+		QuizID:       question.QuizID,
+		Text:         question.Text,
+		QuestionType: question.QuestionType,
+		Points:       question.Points,
+		CreatedAt:    question.CreatedAt,
+	}
 }

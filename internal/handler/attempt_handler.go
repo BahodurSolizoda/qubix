@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"qubix/internal/dto"
+	appmiddleware "qubix/internal/middleware"
 	"qubix/internal/model"
 	"qubix/internal/service"
-	appmiddleware "qubix/middleware"
 )
 
 type AttemptHandler struct {
@@ -17,11 +18,7 @@ type AttemptHandler struct {
 	resultService  *service.ResultService
 }
 
-func NewAttemptHandler(
-	attemptService *service.AttemptService,
-	answerService *service.AnswerService,
-	resultService *service.ResultService,
-) *AttemptHandler {
+func NewAttemptHandler(attemptService *service.AttemptService, answerService *service.AnswerService, resultService *service.ResultService) *AttemptHandler {
 	return &AttemptHandler{
 		attemptService: attemptService,
 		answerService:  answerService,
@@ -54,7 +51,7 @@ func (h *AttemptHandler) Start(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(attempt)
+	json.NewEncoder(w).Encode(toAttemptResponse(attempt))
 }
 
 func (h *AttemptHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
@@ -70,11 +67,7 @@ func (h *AttemptHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request struct {
-		QuestionID int    `json:"question_id"`
-		TextAnswer string `json:"text_answer"`
-		OptionIDs  []int  `json:"option_ids"`
-	}
+	var request dto.SubmitAnswerRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -139,7 +132,7 @@ func (h *AttemptHandler) Finish(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(toResultResponse(result))
 }
 
 func (h *AttemptHandler) GetResult(w http.ResponseWriter, r *http.Request) {
@@ -171,4 +164,27 @@ func (h *AttemptHandler) GetResult(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+func toAttemptResponse(attempt *model.Attempt) dto.AttemptResponse {
+	return dto.AttemptResponse{
+		ID:          attempt.ID,
+		UserID:      attempt.UserID,
+		QuizID:      attempt.QuizID,
+		StartedAt:   attempt.StartedAt,
+		CompletedAt: attempt.CompletedAt,
+		Status:      attempt.Status,
+	}
+}
+
+func toResultResponse(result *model.Result) dto.ResultResponse {
+	return dto.ResultResponse{
+		ID:             result.ID,
+		AttemptID:      result.AttemptID,
+		Score:          result.Score,
+		TotalQuestions: result.TotalQuestions,
+		CorrectAnswers: result.CorrectAnswers,
+		IsPassed:       result.IsPassed,
+		CreatedAt:      result.CreatedAt,
+	}
 }

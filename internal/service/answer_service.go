@@ -14,12 +14,7 @@ type AnswerService struct {
 	answerRepo   AnswerRepository
 }
 
-func NewAnswerService(
-	attemptRepo AttemptRepository,
-	questionRepo QuestionRepository,
-	optionRepo OptionRepository,
-	answerRepo AnswerRepository,
-) *AnswerService {
+func NewAnswerService(attemptRepo AttemptRepository, questionRepo QuestionRepository, optionRepo OptionRepository, answerRepo AnswerRepository) *AnswerService {
 	return &AnswerService{
 		attemptRepo:  attemptRepo,
 		questionRepo: questionRepo,
@@ -28,12 +23,7 @@ func NewAnswerService(
 	}
 }
 
-func (s *AnswerService) Submit(
-	ctx context.Context,
-	attemptID, userID, questionID int,
-	textAnswer string,
-	optionIDs []int,
-) error {
+func (s *AnswerService) Submit(ctx context.Context, attemptID, userID, questionID int, textAnswer string, optionIDs []int) error {
 	if attemptID <= 0 || userID <= 0 || questionID <= 0 {
 		return errors.New("invalid ID")
 	}

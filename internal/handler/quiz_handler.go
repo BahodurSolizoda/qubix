@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"qubix/internal/dto"
+	appmiddleware "qubix/internal/middleware"
 	"qubix/internal/model"
 	"qubix/internal/service"
-	appmiddleware "qubix/middleware"
 )
 
 type QuizHandler struct {
@@ -34,23 +35,32 @@ func (h *QuizHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var quiz model.Quiz
+	var request dto.QuizRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&quiz); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	quiz.CreatorID = userID
+	quiz := &model.Quiz{
+		CreatorID:   userID,
+		CategoryID:  request.CategoryID,
+		Title:       request.Title,
+		Description: request.Description,
+		Difficulty:  request.Difficulty,
+		TimeLimit:   request.TimeLimit,
+	}
 
-	if err := h.quizService.Create(r.Context(), &quiz); err != nil {
+	if err := h.quizService.Create(r.Context(), quiz); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	response := toQuizResponse(quiz)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(quiz)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *QuizHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +81,7 @@ func (h *QuizHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(quiz)
+	json.NewEncoder(w).Encode(toQuizResponse(quiz))
 }
 
 func (h *QuizHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -81,8 +91,14 @@ func (h *QuizHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := make([]dto.QuizResponse, 0, len(quizzes))
+
+	for _, quiz := range quizzes {
+		response = append(response, toQuizResponse(&quiz))
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(quizzes)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *QuizHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -119,17 +135,24 @@ func (h *QuizHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var quiz model.Quiz
+	var request dto.QuizRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&quiz); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	quiz.ID = id
-	quiz.CreatorID = userID
+	quiz := &model.Quiz{
+		ID:          id,
+		CreatorID:   userID,
+		CategoryID:  request.CategoryID,
+		Title:       request.Title,
+		Description: request.Description,
+		Difficulty:  request.Difficulty,
+		TimeLimit:   request.TimeLimit,
+	}
 
-	if err := h.quizService.Update(r.Context(), &quiz); errors.Is(err, model.ErrNotFound) {
+	if err := h.quizService.Update(r.Context(), quiz); errors.Is(err, model.ErrNotFound) {
 		http.Error(w, "quiz not found", http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -183,4 +206,18 @@ func (h *QuizHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func toQuizResponse(quiz *model.Quiz) dto.QuizResponse {
+	return dto.QuizResponse{
+		ID:          quiz.ID,
+		CreatorID:   quiz.CreatorID,
+		CategoryID:  quiz.CategoryID,
+		Title:       quiz.Title,
+		Description: quiz.Description,
+		Difficulty:  quiz.Difficulty,
+		TimeLimit:   quiz.TimeLimit,
+		CreatedAt:   quiz.CreatedAt,
+		UpdatedAt:   quiz.UpdatedAt,
+	}
 }

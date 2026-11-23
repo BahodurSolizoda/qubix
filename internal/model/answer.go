@@ -3,9 +3,9 @@ package model
 import "time"
 
 type Answer struct {
-	ID         int       `json:"id"`
-	AttemptID  int       `json:"attempt_id"`
-	QuestionID int       `json:"question_id"`
-	TextAnswer string    `json:"text_answer"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID         int
+	AttemptID  int
+	QuestionID int
+	TextAnswer string
+	CreatedAt  time.Time
 }

@@ -31,11 +31,7 @@ func (r *AnswerRepository) Create(ctx context.Context, answer *model.Answer) err
 	).Scan(&answer.ID, &answer.CreatedAt)
 }
 
-func (r *AnswerRepository) CreateWithOptions(
-	ctx context.Context,
-	answer *model.Answer,
-	optionIDs []int,
-) error {
+func (r *AnswerRepository) CreateWithOptions(ctx context.Context, answer *model.Answer, optionIDs []int) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -74,10 +70,7 @@ func (r *AnswerRepository) CreateWithOptions(
 	return tx.Commit()
 }
 
-func (r *AnswerRepository) AddOption(
-	ctx context.Context,
-	answerOption *model.AnswerOption,
-) error {
+func (r *AnswerRepository) AddOption(ctx context.Context, answerOption *model.AnswerOption) error {
 	query := `
 		INSERT INTO answer_options (answer_id, option_id)
 		VALUES ($1, $2)
@@ -93,10 +86,7 @@ func (r *AnswerRepository) AddOption(
 	return err
 }
 
-func (r *AnswerRepository) GetByAttemptID(
-	ctx context.Context,
-	attemptID int,
-) ([]model.Answer, error) {
+func (r *AnswerRepository) GetByAttemptID(ctx context.Context, attemptID int) ([]model.Answer, error) {
 	query := `
 		SELECT id, attempt_id, question_id, text_answer, created_at
 		FROM answers
@@ -136,10 +126,7 @@ func (r *AnswerRepository) GetByAttemptID(
 	return answers, nil
 }
 
-func (r *AnswerRepository) GetOptionIDsByAnswerID(
-	ctx context.Context,
-	answerID int,
-) ([]int, error) {
+func (r *AnswerRepository) GetOptionIDsByAnswerID(ctx context.Context, answerID int) ([]int, error) {
 	query := `
 		SELECT option_id
 		FROM answer_options

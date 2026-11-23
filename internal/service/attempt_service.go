@@ -12,10 +12,7 @@ type AttemptService struct {
 	quizRepo    QuizRepository
 }
 
-func NewAttemptService(
-	attemptRepo AttemptRepository,
-	quizRepo QuizRepository,
-) *AttemptService {
+func NewAttemptService(attemptRepo AttemptRepository, quizRepo QuizRepository) *AttemptService {
 	return &AttemptService{
 		attemptRepo: attemptRepo,
 		quizRepo:    quizRepo,
